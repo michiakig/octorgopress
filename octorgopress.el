@@ -6,7 +6,9 @@
 
 (org-export-define-backend 'markdown
   '(
+    (bold . org-markdown-bold)
     (headline . org-markdown-headline)
+    (italic . org-markdown-italic)
     (link . org-markdown-link)
     (paragraph . org-markdown-paragraph)
     (section . org-markdown-section)
@@ -47,6 +49,14 @@
 
 (defun org-markdown-section (section contents info)
   contents)
+
+(defun org-markdown-italic (elt contents info)
+  "Transcode italic text to Markdown equiv of <em>"
+  (format "*%s*" contents))
+
+(defun org-markdown-bold (text contents info)
+  "Transcode bold text to Markdown equiv of <strong>"
+  (format "**%s**" contents))
 
 (defun org-markdown-export-as-markdown
   (&optional async subtreep visible-only body-only ext-plist)
