@@ -19,8 +19,8 @@
 (defun org-octopress-template (contents info)
   "Accepts the final transcoded string and a plist of export options,
 returns final string with YAML frontmatter as preamble"
-  (let ((title (plist-get info :title))
-        (date (plist-get info :date))
+  (let ((title (car (plist-get info :title)))
+        (date (car (plist-get info :date)))
         (time "")
         (frontmatter
 "---
