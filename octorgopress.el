@@ -98,3 +98,17 @@ categories:
 
 (defun org-octopress-publish-to-octopress (plist filename pub-dir)
   (org-publish-org-to 'octopress filename ".md" plist pub-dir))
+
+(defun new-post (dir title)
+  "Create and visit a new .org file in dir named $date-$title.org, ie
+Octopress/Jekyll style"
+  (interactive "Mdirectory: \nMtitle: ")
+  (let* ((date (format-time-string "%Y-%m-%d"))
+         (title-no-spaces (replace-regexp-in-string " +" "-" title))
+         (dirname (file-name-as-directory dir))
+         (filename (format (concat dirname "%s-%s.org") date title-no-spaces)))
+    (find-file filename)
+    (rename-buffer title)
+    (org-insert-export-options-template)
+    (rename-buffer filename)))
+
