@@ -13,7 +13,27 @@
     (paragraph . org-markdown-paragraph)
     (section . org-markdown-section)
     (src-block . org-markdown-src-block)
+    (template . org-markdown-template)
 ))
+
+(defun org-markdown-template (contents info)
+  "Accepts the final transcoded string and a plist of export options,
+returns final string with YAML frontmatter as preamble"
+  (let ((title (plist-get info :title))
+        (date (plist-get info :date))
+        (time "")
+        (frontmatter
+"---
+layout: post
+title: %s
+date: %s %s
+comments: true
+external-url:
+categories:
+---
+"))
+    (concat (format frontmatter title date time)
+            contents)))
 
 (defun org-markdown-src-block (src-block contents info)
   "Transcode a #+begin_src block from Org to Github style backtick code blocks"
