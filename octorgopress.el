@@ -40,11 +40,13 @@ categories:
 
 (defun org-octopress-src-block (src-block contents info)
   "Transcode a #+begin_src block from Org to Github style backtick code blocks"
-  (let ((lang (org-element-property :language src-block))
-        (value (org-element-property :value src-block))
-        (name (or (org-element-property :name src-block) "")))
+  (let* ((lang (org-element-property :language src-block))
+         (value (org-element-property :value src-block))
+         (name (org-element-property :name src-block))
+         (lang-and-name (or (and lang name (format " %s %s\n" lang name)) "\n")))
     (concat
-     (format "``` %s %s\n" lang name)
+     "```"
+     lang-and-name
      value
      "```\n"
      contents)))
