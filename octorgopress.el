@@ -117,3 +117,13 @@ Octopress/Jekyll style"
     (org-insert-export-options-template)
     (rename-buffer filename)))
 
+(defun make-org-publish-project-alist
+  (name blorg-root octopress-root)
+  (let ((octopress-posts (concat (file-name-as-directory octopress-root)
+                                 "source/_posts")))
+    `(("posts"
+       :base-directory ,blorg-root
+       :base-extension "org"
+       :publishing-directory ,octopress-posts
+       :publishing-function org-octopress-publish-to-octopress)
+      (,name :components ("posts")))))
