@@ -4,6 +4,8 @@
 
 (require 'ox)
 
+(defvar *org-octopress-yaml-front-matter* t)
+
 (org-export-define-backend 'octopress
   '(
     (bold . org-octopress-bold)
@@ -32,8 +34,9 @@ external-url:
 categories:
 ---
 "))
-    (concat (format frontmatter title date time)
-            contents)))
+    (if *org-octopress-yaml-front-matter*
+        (concat (format frontmatter title date time) contents)
+      contents)))
 
 (defun org-octopress-src-block (src-block contents info)
   "Transcode a #+begin_src block from Org to Github style backtick code blocks"
