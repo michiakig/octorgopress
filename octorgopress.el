@@ -83,6 +83,12 @@ categories:
   "Transcode bold text to Octopress equiv of <strong>"
   (format "**%s**" contents))
 
+(defun org-octopress-fixed-width (fixed-width contents info)
+  "Transcode fixed-width region to Octopress anonymous code block"
+  (concat "```\n"
+          (org-element-property :value fixed-width)
+          "\n```\n"))
+
 (defun org-octopress-export-as-octopress
   (&optional async subtreep visible-only body-only ext-plist)
   (interactive)

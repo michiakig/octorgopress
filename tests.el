@@ -146,3 +146,16 @@ Isn't ML nice?")
 "# Some SML code:
 
 Isn't ML nice?"))))
+
+(ert-deftest octopress-fixed-width ()
+  "Test exporting fixed width area"
+  (let ((*org-octopress-yaml-front-matter* nil))
+    (should (eq/trail-newlines (to-octopress
+": bar
+: foo")
+
+"```
+bar
+foo
+```
+"))))
