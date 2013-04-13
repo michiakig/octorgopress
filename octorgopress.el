@@ -6,6 +6,11 @@
 
 (defvar *org-octopress-yaml-front-matter* t)
 
+;; pygments supports the following languages
+(defvar *org-octopress-pygments-langs*
+  (mapcar (lambda (str) (downcase (replace-regexp-in-string " " "-" str)))
+          '("ActionScript" "Ada" "ANTLR" "AppleScript" "Assembly" "Asymptote" "Awk" "Befunge" "Boo" "BrainFuck" "C" "C++" "C#" "Clojure" "CoffeeScript" "ColdFusion" "Common Lisp" "Coq" "Cython" "D" "Dart" "Delphi" "Dylan" "Erlang" "Factor" "Fancy" "Fortran" "F#" "Gherkin" "GL shaders" "Groovy" "Haskell" "IDL" "Io" "Java" "JavaScript" "LLVM" "Logtalk" "Lua" "Matlab" "MiniD" "Modelica" "Modula-2" "MuPad" "Nemerle" "Nimrod" "Objective-C" "Objective-J" "Octave" "OCaml" "PHP" "Perl" "PovRay" "PostScript" "PowerShell" "Prolog" "Python" "Rebol" "Redcode" "Ruby" "Rust" "S" "S-Plus" "R" "Scala" "Scheme" "Scilab" "Smalltalk" "SNOBOL" "Tcl" "Vala" "Verilog" "VHDL" "Visual Basic.NET" "Visual FoxPro" "XQuery")))
+
 (org-export-define-backend 'octopress
   '(
     (bold . org-octopress-bold)
@@ -39,9 +44,14 @@ categories:
         (concat (format frontmatter title date time) contents)
       contents)))
 
+(defun get-lang (lang)
+  (cond ((string= lang "emacs-lisp") "common-lisp")
+        ((not (member lang *org-octopress-pygments-langs*)) nil)
+        t lang))
+
 (defun org-octopress-src-block (src-block contents info)
   "Transcode a #+begin_src block from Org to Github style backtick code blocks"
-  (let* ((lang (org-element-property :language src-block))
+  (let* ((lang (get-lang (org-element-property :language src-block)))
          (value (org-element-property :value src-block))
          (name (org-element-property :name src-block))
          (lang-and-name (or (and lang name (format " %s %s\n" lang name)) "\n")))

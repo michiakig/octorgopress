@@ -67,7 +67,7 @@ Org will parse this file into something like the following syntax tree:
 : simplify-org-str
 
 #+BEGIN_SRC emacs-lisp :exports results :results output :session octopress
-  (print (simplify-org-str "* Headline 1
+  (pp (simplify-org-str "* Headline 1
   
   Lorem ipsum"))
 #+END_SRC
