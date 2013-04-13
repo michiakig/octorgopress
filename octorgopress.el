@@ -84,10 +84,38 @@ categories:
   "Transcode bold text to Octopress equiv of <strong>"
   (format "**%s**" contents))
 
+(defun is-empty (s)
+  (string= s ""))
+
+(defun drop-while (f list)
+  (cond ((null list) nil)
+        ((funcall f (car list)) (drop-while f (cdr list)))
+        (t list)))
+
+(defun take-while (f list)
+  (cond ((null list) nil)
+        ((funcall f (car list)) (cons (car list)
+                                      (take-while f (cdr list))))
+        (t nil)))
+
+(defun complement (f)
+  (lexical-let ((f f))
+    (lambda (&rest args)
+      (not (apply f args)))))
+
+(defun string-join (xs y)
+  (mapconcat #'identity xs y))
+
+(defun trim-empty-lines (s)
+  (let ((lines (split-string s "\n")))
+    (string-join
+     (reverse (drop-while #'is-empty
+                          (reverse (drop-while #'is-empty lines)))) "\n")))
+
 (defun org-octopress-fixed-width (fixed-width contents info)
   "Transcode fixed-width region to Octopress anonymous code block"
   (concat "```\n"
-          (org-element-property :value fixed-width)
+          (trim-empty-lines (org-element-property :value fixed-width))
           "\n```\n"))
 
 (defun org-octopress-export-as-octopress

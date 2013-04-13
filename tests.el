@@ -175,3 +175,27 @@ bar
 foo
 ```
 "))))
+
+(ert-deftest octopress-fixed-width-trim ()
+  (let ((*org-octopress-yaml-front-matter* nil))
+    (should (string= (to-octopress
+":
+: foo
+: bar")
+
+"```
+foo
+bar
+```
+"))
+    (should (string= (to-octopress
+":
+:
+: foo
+: bar")
+
+"```
+foo
+bar
+```
+"))))
