@@ -44,7 +44,7 @@ an example.
 
 Org will parse this file into something like the following syntax tree:
 
-#+BEGIN_SRC emacs-lisp :exports none
+#+BEGIN_SRC emacs-lisp :exports none :session octopress
   (defun simplify (x)
     (if (not (null x))
         (case (type-of x)
@@ -66,15 +66,11 @@ Org will parse this file into something like the following syntax tree:
 #+RESULTS:
 : simplify-org-str
 
-#+BEGIN_SRC emacs-lisp :exports results :results output
+#+BEGIN_SRC emacs-lisp :exports results :results output :session octopress
   (print (simplify-org-str "* Headline 1
   
   Lorem ipsum"))
 #+END_SRC
-
-#+RESULTS:
-: 
-: (org-data (headline (section (paragraph "Lorem ipsum"))))
 
 # #+BEGIN_SRC
 # (org-data
@@ -101,6 +97,3 @@ that type of element to your chosen format.
     (src-block . org-octopress-src-block)
     (template . org-octopress-template)))
 #+END_SRC
-
-Each of these functions should take a 
-
