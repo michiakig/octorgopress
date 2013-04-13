@@ -159,3 +159,19 @@ bar
 foo
 ```
 "))))
+
+(ert-deftest octopress-fixed-width-results ()
+  "Test exporting fixed width area from results"
+  (let ((*org-octopress-yaml-front-matter* nil))
+    (should (eq/trail-newlines (to-octopress
+"#+RESULTS:
+:
+: bar
+: foo")
+
+"```
+
+bar
+foo
+```
+"))))

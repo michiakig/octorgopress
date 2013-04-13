@@ -9,6 +9,7 @@
 (org-export-define-backend 'octopress
   '(
     (bold . org-octopress-bold)
+    (fixed-width . org-octopress-fixed-width)
     (headline . org-octopress-headline)
     (italic . org-octopress-italic)
     (link . org-octopress-link)
