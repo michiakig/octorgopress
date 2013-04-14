@@ -47,7 +47,7 @@ categories:
 (defun get-lang (lang)
   (cond ((string= lang "emacs-lisp") "common-lisp")
         ((not (member lang *org-octopress-pygments-langs*)) nil)
-        t lang))
+        (t lang)))
 
 (defun org-octopress-src-block (src-block contents info)
   "Transcode a #+begin_src block from Org to Github style backtick code blocks"

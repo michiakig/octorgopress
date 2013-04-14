@@ -84,7 +84,7 @@ int main() {
 #+end_src
 ")
 
-"``` C Hello World in C
+"``` c Hello World in C
 int main() {
    printf(\"Hello, World.\\n\");
 }
