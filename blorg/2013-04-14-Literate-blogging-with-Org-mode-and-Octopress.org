@@ -349,7 +349,7 @@ browser.
 In case it wasn't obvious, this whole post was written using this
 system, and in fact the entire (albeit small) body of code is
 contained in the Org file for this post, using Babel's noweb-style
-literate facilities. The [[https://raw.github.com/spacemanaki/octorgopress/master/blorg/2013-04-06-Literate-blogging-with-Org-mode-and-Octopress.org][source]] for this post is on Github, and
+literate facilities. The [[https://raw.github.com/spacemanaki/octorgopress/master/blorg/2013-04-14-Literate-blogging-with-Org-mode-and-Octopress.org][source]] for this post is on Github, and
 contains some extra code not exported, like various helper functions
 and tests.
 
