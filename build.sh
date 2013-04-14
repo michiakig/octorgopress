@@ -1,8 +1,16 @@
  #!/bin/bash
 
-if [ ! -d publish ]; then
-    git clone /Users/aki/source/octopress publish
+# tangles octorgopress.el
+./runTests.sh
+
+if [ -d publish ]; then
+    rm -rf publish
 fi
+if [ ! -d /Users/aki/source/octopress ]; then
+    echo "missing octopress source, bailing"
+    exit 1
+fi
+git clone /Users/aki/source/octopress publish
 pushd publish
 git checkout 7dfba9a26e21b970f74aa663a86d407ae8fd5958
 rake install
