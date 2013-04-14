@@ -3,7 +3,7 @@
 emacs -Q --batch \
     --eval "(progn
 (load-file \"~/.emacs.d/init.el\")
-(find-file \"blorg/2013-04-06-Literate-blogging-with-Org-mode-and-Octopress.org\")
+(find-file \"blorg/2013-04-14-Literate-blogging-with-Org-mode-and-Octopress.org\")
 (org-babel-tangle)
 (load-file \"../octorgopress.el\")
 (load-file \"../tests.el\")
