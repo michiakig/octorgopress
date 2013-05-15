@@ -3,14 +3,18 @@
 # tangles octorgopress.el
 ./runTests.sh
 
+OCTOPRESS=/Users/aki/source/octopress
+
 if [ -d publish ]; then
     rm -rf publish
 fi
-if [ ! -d /Users/aki/source/octopress ]; then
-    echo "missing octopress source, bailing"
+if [ ! -d "$OCTOPRESS" ]; then
+    echo ""
+    echo "!!! Set env var OCTOPRESS to path to Octopress source."
+    echo "!!! Bailing..."
     exit 1
 fi
-git clone /Users/aki/source/octopress publish
+git clone $OCTOPRESS publish
 pushd publish
 git checkout 7dfba9a26e21b970f74aa663a86d407ae8fd5958
 rake install
