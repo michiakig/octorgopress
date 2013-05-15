@@ -15,7 +15,6 @@ pushd publish
 git checkout 7dfba9a26e21b970f74aa663a86d407ae8fd5958
 rake install
 cp -r ../customizations/ .
-cp ../posterous/* ./source/_posts
 
 emacs -Q --batch \
     --eval "(progn

@@ -365,7 +365,7 @@ it I would be pleased to hear from you, and help if you run into
 problems.
 
 #+NAME: octorgopress
-#+BEGIN_SRC emacs-lisp :tangle ../octorgopress.el :exports none :noweb yes
+#+BEGIN_SRC emacs-lisp :tangle octorgopress.el :exports none :noweb yes
   ;; Octopress backend for Org-mode
   ;; Depends on latest (bleeding development branch, maybe v8.x) of Org
   ;; uses generic export: http://orgmode.org/worg/dev/org-export-reference.html
@@ -489,7 +489,7 @@ problems.
 : make-org-publish-project-alist
 
 #+NAME: tests
-#+BEGIN_SRC emacs-lisp :exports none :tangle ../tests.el
+#+BEGIN_SRC emacs-lisp :exports none :tangle tests.el
   ;; Some helpers:
   
   (defun to-octopress (s)
