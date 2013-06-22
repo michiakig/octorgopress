@@ -1,8 +1,8 @@
 #!/bin/bash
 
-emacs -Q --batch \
+emacs --batch \
     --eval "(progn
-(load-file \"~/.emacs.d/init.el\")
+(add-to-list 'load-path \"/Users/aki/source/org-mode/lisp/\")
 (find-file \"literate.org\")
 (org-babel-tangle)
 (load-file \"octorgopress.el\")

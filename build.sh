@@ -19,10 +19,11 @@ pushd publish
 git checkout 7dfba9a26e21b970f74aa663a86d407ae8fd5958
 rake install
 cp -r ../customizations/ .
+cp ../posterous/* ./source/_posts
 
-emacs -Q --batch \
+emacs --batch \
     --eval "(progn
-(load-file \"~/.emacs.d/init.el\")
+(add-to-list 'load-path \"/Users/aki/source/org-mode/lisp/\")
 (load-file \"../octorgopress.el\")
 (setq org-publish-project-alist
       (make-org-publish-project-alist
