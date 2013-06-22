@@ -1,0 +1,181 @@
+#+TITLE:     A tale of two parsers, part 1
+#+AUTHOR:    aki
+#+EMAIL:     aki@utahraptor
+#+DATE:      2013-06-22 Sat
+
+** Or, notes on recursive descent
+
+I worked on a little lambda calculus interpreter with fellow Hacker Schooler last week. We wrote it in Haskell since he was starting out learning Haskell and I've been meaning to come to grips with Haskell and develop some general proficiency in it (instead of just faking my way through pretending it's ML). I've written [[http://spacemanaki.com/blog/2010/07/05/The-Little-Schemer/][little interpreters]] before, so to ensure I was working at the edge of my ability and knowledge, I decided to add a front-end (lexer and parser) to our interpreter. Previously, I've always relied on Scheme's (or Lisp's) reader to do parsing for me. Even though the language is tiny, this would be the largest parsing job I've ever tackled (actually not entirely true, my first task at an internship many years ago was to write an XML parser in Java, however I suspect that my manager at the time was trolling or hazing me, and anyway I didn't really have any idea what I was doing. This time at least I'd read the first few chapters of the Dragon book).
+
+** Back to ML
+
+I prototyped the frontend in Standard ML because all of the parsing code and pseudo-code I've read has been relatively imperative, and I knew I'd be able to reach for mutable references in Standard ML if I needed them (this is one reason I generally prefer ML to Haskell, I think using impure code to patch over incomplete design is rather useful, something I learned to put into words after reading [[http://matt.might.net/articles/best-programming-languages/][Matt Might's description]]). That turned out to be pretty helpful, and the Haskell version took a drastically different approach in the end, so it was probably good I didn't try to tackle that first.
+
+Something that was pretty important was that the parser should return an actual abstract syntax tree, allowing the interpreter to do the real work of evaluating the program. It would do no good to simply check that the input conformed to the grammar of the language, which is what many or most parsers in compiler text books do. Accumulating and returning an abstract syntax tree was something I could envision being able to do in the course of implementing a parser, but it wasn't obvious to me how that worked, especially in the framework of a purely or mostly functional language, where destructively updating fields in an AST node is mostly out of the question (Haskell) or at least strongly inadvisable (SML).
+
+The parser I wrote in SML works by recursive descent, and since our language supports infix arithmetic expressions, I had to deal with some classic problems like correctly implementing precedence of multiplication over addition, as well as left associativity. Together, getting these right was the hardest part of writing the parser.
+
+** Arithmetic
+
+Here's the classic grammar for arithmetic expressions, transformed to remove left-recursion and to enforce a higher precedence for multiplication over addition.
+
+#+BEGIN_SRC
+  expr   -> term expr'
+  expr'  -> + term expr'
+  expr'  ->
+  term   -> factor term'
+  term'  -> * factor term'
+  term'  ->
+  factor -> ( expr )
+  factor -> id
+  factor -> num
+#+END_SRC
+
+One mistake I did when starting out on the parser was to immediately refactor this grammar to remove what I thought was a redundancy:
+
+#+BEGIN_SRC
+  expr   -> term expr'
+  expr'  -> + expr        // production changed
+  expr'  ->
+  term   -> factor term'
+  term'  -> * term        // production changed
+  term'  ->
+  factor -> ( expr )
+  factor -> id
+  factor -> num
+#+END_SRC
+
+I changed two productions that seemingly had two non-terminals when they could have one. This introduced a subtle bug in the parser. Here's the code for the `expr` production, using the second (refactored) grammar above:
+
+#+NAME: expr
+#+BEGIN_SRC sml
+  fun expr () : ast =
+      (log "expr";
+       let val lhs = term ()
+       in case expr' () of
+              NONE => lhs
+            | SOME (oper, rhs) => oper (lhs, rhs)
+       end)
+  
+  and term () : ast =
+      (log "term";
+       let val lhs = factor ()
+       in case term'() of
+              NONE => lhs
+            | SOME (oper, rhs) => oper (lhs, rhs)
+       end)
+  
+  and expr' () : ((ast * ast -> ast) * ast) option =
+      (log "expr'";
+      if has ()
+         then case peek () of
+                  L.Add => (next (); SOME (Add, expr ())) (* recur by calling expr *)
+                | L.Sub => (next (); SOME (Sub, expr ()))
+                | _ => NONE
+      else NONE)
+  (* ... *)
+#+END_SRC
+
+Here, the `expr'` procedure looks one token ahead (`case peek () of...` on line 20) and returns (on line 21 and 22) a pair of AST node constructor and AST node for the non-epsilon production (and returns `NONE` in the case of the epsilon production). The second element of this pair is the right-hand side of the operator represented by the constructor. While this is still a left-most derivation since `expr` is the only non-terminal in this production, the result is a right-associative AST. For instance, for the expression `1 + 2 - 3`, this code would produce the AST `Add(Num 1, Sub (2, 3))` (where `Num` is a unary constructor of leaf nodes for numbers). This makes addition and subtraction left associative operations, which is incorrect from the usual conventions in elementary school math as well as programming languages. In a sense, neither the code or the grammar is wrong, the grammar (I believe...) is sort of correct in the theoretical sense that it's possible to derive a parse tree that's right associative, and the code tries to implement the grammar as it's written, but together these things conspired to produce a bug. Fixing it was as simple as removing my mistaken simplification, returning the grammar to the first one above, and then updating the code to match:
+
+#+NAME: expr
+#+BEGIN_SRC sml
+  fun expr () : ast =
+      (log "expr";
+       let
+          val lhs = term ()
+       in
+          expr' lhs
+       end)
+  
+  and term () : ast =
+      (log "term";
+       let
+          val lhs = factor ()
+       in
+          term' lhs
+       end)
+  
+  and expr' (lhs : ast) : ast =
+      (log "expr'";
+      if has ()
+         then case peek () of
+                  L.Add => (next (); expr' (Add (lhs, term ())))
+                | L.Sub => (next (); expr' (Sub (lhs, term ())))
+                | _ => lhs
+      else lhs)
+#+END_SRC
+
+This had the extra effect of forcing another refactoring of the code, resulting in the `expr'` procedure taking an AST node as an argument instead of unit, and returning an AST node. It recursively calls itself after calling `term` and applying the same AST node constructor it returned in the previous version. Parsing the expression `1 + 2 - 3` would now correctly produce `Sub(Add(Num 1, Num 2), 3)`.
+
+** Other expressions
+
+Adding other expressions to the parser was easy to do, but very tedious. There's probably a nicer way to implement these simpler productions (where there the first element is a single non-terminal, and it's just a question of matching the input to the rest of the non-terminal), but while this code it's pretty, it is quite obvious and follows directly from the grammar. Here's the code for the `expr` production, after adding If, Let and Fn (i.e. Lambda) expressions:
+
+#+NAME: expr
+#+BEGIN_SRC sml
+  fun expr () : ast =
+      (log "expr";
+       case peek () of
+           L.If =>
+           (adv ()
+           ; let val e1 = exprs ()
+             in case peek () of
+                    L.Then => (adv ()
+                              ; let val e2 = exprs ()
+                                in case peek () of
+                                       L.Else => (adv ()
+                                                 ; If (e1, e2, exprs ()))
+                                     | t => expected "else" t
+                                end)
+                  | t => expected "then" t
+             end)
+         | L.Fn =>
+           (adv ()
+           ; case peek () of
+                 L.Id x => (adv ()
+                           ; case peek () of
+                                 L.Arrow => (adv (); Fn (x, exprs ()))
+                               | t => expected "=>" t)
+               | t => err ("expected formal arg in fn expr, got " ^ L.show t))
+         | L.Let =>
+           (adv ()
+           ; case peek () of
+                 L.Id x => (adv ()
+                           ; case peek () of
+                                 L.Eq => (adv ()
+                                         ; let val bound = exprs ()
+                                           in case peek () of
+                                                  L.In => (adv (); Let (x, bound, exprs ()))
+                                                | t => expected "in" t
+                                           end)
+                               | t => expected "=" t)
+               | t => err ("expected bound var in let expr, got " ^ L.show t))
+         | _ => expr' (term ()))
+#+END_SRC
+
+Hairy and imperative, but it gets the job done.
+
+** Unfunctional
+
+This code is a great example of how flexible ML can be, in the sense that it really allows you to write rather boring and bad procedural code. The entire `parse` function relies on a local mutable reference pointing to the rest of the stream of input tokens, and a small collection of local functions that handle this reference:
+
+#+NAME: parse
+#+BEGIN_SRC sml
+  fun parse toks =
+      let
+         val rest = ref toks
+         fun has () = not (null (!rest))
+         fun adv () = rest := tl (!rest)
+         fun next () = hd (!rest) before adv ()
+         fun getNext () = if has () then SOME (next ()) else NONE
+         fun peek () = hd (!rest)
+         fun match tok = has () andalso tok = peek ()
+         fun err s = raise SyntaxError ("err " ^ s)
+         fun expected s t = raise SyntaxError ("expected " ^ s ^ ", got " ^ L.show t)
+  (* ... *)
+#+END_SRC
+
+Refactoring this code to remove the mutable reference and instead pass around the rest of the input is something I still want to do, however since our original interpreter was written in Haskell, I decided to move on to porting this to Haskell, where I'd be forced to figure out how to make it functional. I'll go over that parser in the next post.
+
+The complete code for this parser is [[https://github.com/spacemanaki/persimmon/blob/e97febcbdf0f03812b9159e6ce3df1564f14ccff/arith.sml][here]].
