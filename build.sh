@@ -23,7 +23,10 @@ cp ../posterous/* ./source/_posts
 
 emacs --batch \
     --eval "(progn
-(add-to-list 'load-path \"/Users/aki/source/org-mode/lisp/\")
+(require 'package)
+(add-to-list 'package-archives
+             '(\"marmalade\" . \"http://marmalade-repo.org/packages/\") t)
+(package-initialize)
 (load-file \"../octorgopress.el\")
 (setq org-publish-project-alist
       (make-org-publish-project-alist
