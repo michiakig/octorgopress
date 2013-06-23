@@ -6,8 +6,6 @@ emacs --batch \
 (add-to-list 'package-archives
              '(\"marmalade\" . \"http://marmalade-repo.org/packages/\") t)
 (package-initialize)
-(find-file \"literate.org\")
-(org-babel-tangle)
 (load-file \"octorgopress.el\")
 (load-file \"tests.el\")
 (with-temp-buffer
