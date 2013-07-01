@@ -1,0 +1,256 @@
+#+TITLE: A tale of two parsers, part 2
+#+DATE: <2013-06-30 Sun>
+#+AUTHOR: aki
+#+EMAIL: aki@utahraptor
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline
+#+OPTIONS: author:t c:nil creator:comment d:(not LOGBOOK) date:t e:t
+#+OPTIONS: email:nil f:t inline:t num:t p:nil pri:nil stat:t tags:t
+#+OPTIONS: tasks:t tex:t timestamp:t toc:t todo:t |:t
+#+CREATOR: Emacs 24.3.1 (Org mode 8.0.3)
+#+DESCRIPTION:
+#+EXCLUDE_TAGS: noexport
+#+KEYWORDS:
+#+LANGUAGE: en
+#+SELECT_TAGS: export
+
+** Or, more notes on recursive descent
+
+[[http://spacemanaki.com/blog/2013/06/22/A-tale-of-two-parsers-part-1/][Previously]], I wrote about pitfalls I encountered while writing a recursive descent parser for a little interpreter. I had planned to write about porting that procedural, impure ML parser to Haskell using simple parser combinators, and then with the Parsec library.
+
+However, since writing that post, I discovered a severe bug in the parser. In this post, I'll describe the bug, how I fixed it and what I learned in the process. Haskell and Parsec will have to wait for now (tl;dr Parsec is pretty neat, but it's easy to rely on infinite lookahead instead of carefully writing LL(1) parsers).
+
+** Parsing function application
+
+I've adapted the prototype I described before into the front-end for an ML compiler I've been working on, since at its core ML is syntactically similar (semantically similar as well of course) to the lambda calculus. Recall that the parser should enforce the usual rules of precedence and associativity in arithmetic expressions: `1 + 2 * 3` should be parsed as `1 + (2 * 3)`. This is relatively well-trodden ground, and most compiler texts address this by introducing precedence levels into the grammar.
+
+In a full-fledged programming language like ML, there are other expressions that must have even higher precedence than multiplication, but aren't usually present in the simple calculator language, for instance function application (or function calls). In ML, function application is simply one expression followed by another: `f x` instead of `f(x)` as is the case in most languages with syntax derived from C. This poses a problem for a recursive descent parser, since the resulting grammar has a production that looks something like:
+
+#+BEGIN_SRC
+   expr -> expr expr (* function application *)
+   expr -> if expr then expr else expr
+   expr -> fn id => expr
+   expr -> let id = expr in expr
+   ...
+#+END_SRC
+
+This was the grammar I wrote in order to add function application to the parser I started with that did arithmetic only, and it grew out of my belief that as a functional, expression oriented language, ML should allow any expression to be called as a function in an application. For instance, the following are all legal ML programs:
+
+#+BEGIN_SRC sml
+  val x = (fn x => x) 1
+  val z = let val x = 1 in fn y => x + y end 2
+#+END_SRC
+
+#+RESULTS:
+: val x = 1 : int
+: val z = 3 : int
+
+However, the grammar poses a real problem for the parser writer: the production `expr -> expr expr` is left-recursive. This production is a pain to fix, and in fact I wasn't able to figure out how to remove the recursion, since the usual algorithm breaks the production into two pieces but the result in this case still has a left recursion.
+
+The intention with this grammar is that the following snippet of ML should be parsed as a curried function application, allowing the usual lambda calculus style of supporting multiple arguments as in ML and Haskell:
+
+#+BEGIN_SRC sml
+  fun add x y z = x + y + z
+  val sum1 = add 1 2 3
+  val sum2 = (((add 1) 2) 3)
+#+END_SRC
+
+#+RESULTS:
+: val add = fn : int -> int -> int -> int
+: val sum1 = 6 : int
+: val sum2 = 6 : int
+
+What I decided was to attempt to fix the problem of parsing function application by ignoring support for curried functions, and add the following production to the grammar:
+
+#+BEGIN_SRC
+   exprs -> expr expr
+   expr  -> if exprs then exprs else exprs
+   expr  -> fn id => exprs
+   expr  -> let id = exprs in exprs
+   ... 
+#+END_SRC
+
+This grammar no longer has the problem that the previous one has, since `exprs` is not left-recursive. The `exprs` production can be implemented straightforwardly in the existing recursive descent parser:
+
+#+BEGIN_SRC sml
+  and exprs () : 'a A.t =
+      let
+         (* check if token is in FIRST(expr) *)
+         fun FIRSTexpr (L.Id (pos, _))   = SOME pos
+           | FIRSTexpr (L.Num (pos, _))  = SOME pos
+           | FIRSTexpr (L.Bool (pos, _)) = SOME pos
+           | FIRSTexpr (L.If pos)        = SOME pos
+           | FIRSTexpr (L.Fn pos)        = SOME pos
+           | FIRSTexpr (L.Let pos)       = SOME pos
+           | FIRSTexpr (L.LParen pos)    = SOME pos
+           | FIRSTexpr _                 = NONE
+  
+         val ast1 = expr ()
+      in
+         if has ()
+            then case FIRSTexpr (peek ()) of
+                     SOME pos => A.App (pos, ast1, expr ())
+                   | NONE => ast1
+         else ast1
+      end
+#+END_SRC
+
+On line 13, this code parses a single expression, then proceeds to look ahead one token (via `has ()`, which returns true is there are remaining tokens and `peek ()` which returns the next token but does not advance the input). It only parses a second expression if that token is in the set `FIRST(expr)` (tokens that could possible begin an `expr`). If the token is not in `FIRST(expr)`, this procedure simply returns the first expression it parsed (the function `FIRSTexpr` returns an `option` value rather than true or false because it's returning the position record which keeps track of line and column number for tokens and AST nodes, for error handling, but it's not important for this discussion).
+
+This technique works, sort of. It does correctly parse function application expressions and doesn't support curried functions, which is what we expected. However the new grammar is deeply flawed, and here's a bit of code that shows how wrong it is:
+
+#+BEGIN_SRC sml
+  f x + g y
+#+END_SRC
+
+This code should be parsed as:
+
+#+BEGIN_SRC sml
+  (f x) + (g y)
+#+END_SRC
+
+But because I added the new production to the top of the grammar (by which I mean the top of the precedence hiearchy), this caused function application to have the lowest precedence, rather than the highest, which is the usual precedence assigned to application in ML and most languages I'm aware of with this syntax. So with the parser I had, this code is parsed as:
+
+#+BEGIN_SRC sml
+  f (x + g)
+#+END_SRC
+
+Pretty bad!
+
+** The Definition of Standard ML
+
+I started researching this problem, because it occured to me that it might very difficult or even impossible to parse ML with recursive descent. I didn't find any evidence that this was the case, and in fact I stumbled upon a [[http://www.cs.princeton.edu/~appel/papers/smlnj.ps][paper]] written by Andrew Appel and David MacQueen about the development of SML/NJ, mentioning that, "Early in the development of the compiler we used a hand-written lexical analyzer and a recursive-descent parser." This was encouraging, to say the least. I also found a few discussions about ML's syntax that mentioned features that make it not LL(k), however none of them specifically mentioned function application, instead referencing completely separate issues like distinguishing datatype constructors from variables and dealing with user-defined infix operators.
+
+Eventually I hit upon a few pages in the appendix of [[http://mitpress.mit.edu/books/definition-standard-ml][The Definition of Standard ML]] which talk about syntax. I had known about The Definition but had avoided opening it simply because I assumed it would be far too dense and difficult for me to make much use of. I also (mistakenly) assumed it wouldn't necessarily get into such hairy, pedestrian details of implementation like how to parse source code. As it turns out, not only are some parts of it pretty accessible, but there is a pretty thorough coverage of syntactic issues that doesn't go as far as defining a grammar suitable for parsing with no modification, but does reveal some interesting properties of ML's syntax, including how to resolve the problem I was facing with function application.
+
+Appendix B begins with a specification of several classes of phrases that make up Standard ML programs: `AtExp`, `AppExp`, `InfExp`, and `Exp`. This distinction is subtle but specifically addresses the issue with the grammar I had put together above. Here is the grammar in the appendix, simplified a little bit for clarity:
+
+#+BEGIN_SRC
+atexp ::= <constant>
+          <variable>
+          <constructor> (datatype, exception)
+          let <dec> in exp ; ... ; exp end
+          ( exp )
+appexp ::= <atexp>
+           <appexp> <atexp>
+infexp ::= <appexp>
+           <infexp> <id> <infexp>
+exp ::= <infexp>
+        if <exp> then <exp> else <exp>
+        while <exp> do <exp>
+        case <exp> of <match>
+        fn <match>
+...
+#+END_SRC
+
+There is obviously more to the full grammar, but this snippet illustrates something important, namely that the following program is syntactically illegal in Standard ML:
+
+#+BEGIN_SRC sml
+  val illegal1 = Int.toString if true then 1 else 2
+#+END_SRC
+
+Essentially, there is a relatively restricted class of expressions that are allowed to be in the function or argument position of an application without being parenthesized: simple expressions like variables, constants, records, selectors (e.g. `#foo`), tuples, lists, and `let` expressions. All other expressions must be parenthesized to be either applied as functions or passed as arguments to functions.
+
+In hindsight, this makes a lot of sense, since there are some "open-ended" expressions that can't possibly occur in the function position: `if`, `while`, `case` and `fn` all lack terminating `end` keywords unlike `let`, so if they were allowed to be applied, any expression occuring after them would be ambiguous, and could be part of the body or considered an argument. It's not as clear to me why the program above is illegal, but requiring both the function an argument to be "atomic" expressions might make for a cleaner grammar.
+
+Adding this separation to my grammar and to my parser wasn't difficult, and now function applications would be parsed correctly with the highest precedence when mixed with infix operators. Here's the code for the `expr` production:
+
+#+BEGIN_SRC sml
+  fun expr () : 'a A.t =
+      (log "expr";
+       case peek () of
+           L.If pos =>
+           (adv ()
+           ; let val e1 = expr ()
+             in case peek () of
+                    L.Then _ => (adv ()
+                                ; let val e2 = expr ()
+                                  in case peek () of
+                                         L.Else _ => (adv ()
+                                                     ; A.If (pos, e1, e2, expr ()))
+                                       | t => expected "else" t
+                                  end)
+                  | t => expected "then" t
+             end)
+         | L.Fn pos =>
+           (adv ()
+           ; case peek () of
+                 L.Id (pos', x) => (adv ()
+                                ; case peek () of
+                                      L.Arrow _ => (adv ()
+                                                   (* FIXME: two ids for Fn *)
+                                                   ; A.Fn (pos', pos, x, expr ()))
+                                    | t => expected "=>" t)
+               | t => err ("expected formal arg in fn expr, got " ^ L.show t))
+  
+         | L.Match pos =>
+           (adv ()
+           ; let val e1 = expr ()
+             in case peek () of
+                    L.With _ => (adv ()
+                                ; A.Match (pos, e1, clauses ()))
+                  | t => expected "with" t
+             end)
+  
+         | _ => infexp ())
+#+END_SRC
+
+It peeks one token ahead (`case peek () of` on line 3) and then depending on the token found, either parses an `if`, `fn`, or `match` expression (`match` in my compiler is the same as `case` in SML, and `match` in OCaml, the reason for using `match` instead of `case` is tied up in the work I've been doing to compile pattern matching, which deserves a whole separate post), or defers to parse an infix expression with `infexp`.
+
+#+BEGIN_SRC sml
+  and appexp () : 'a A.t =
+      (log "appexp";
+       appexp' (atexp ()))
+  
+  (*
+   ,* lhs is the left hand side of the (potential) application
+   ,*)
+  and appexp' (lhs : 'a A.t) : 'a A.t =
+      (log "appexp'";
+       if has () andalso FIRSTatexp (peek ())
+          then appexp' (A.App (A.getInfo lhs, lhs, atexp ()))
+       else lhs)
+  
+  and atexp () : 'a A.t =
+      (log "atexp";
+       case peek () of
+           L.Let pos =>
+           (adv ()
+           ; case peek () of
+                 L.Val _ =>
+                 (adv ()
+                 ; case peek () of
+                       L.Id (_, x) =>
+                       (adv ()
+                       ; case peek () of
+                             L.Eqls _ =>
+                             (adv ()
+                             ; let val bound = expr ()
+                               in case peek () of
+                                      L.In _ =>
+                                      (adv ();
+                                       let val body = expr ()
+                                       in case peek () of
+                                              L.End _ => (adv (); A.Let (pos, x, bound, body))
+                                            | t => expected "end" t
+                                       end)
+                                    | t => expected "in" t
+                               end)
+                           | t => expected "=" t)
+                     | t => err ("expected bound var in let expr, got " ^ L.show t))
+               | t => expected "val" t)
+         | L.Num (pos, n) => (adv (); A.Num (pos, n))
+         | L.Bool (pos, b) => (adv (); A.Bool (pos, b))
+         | L.Id (pos, s) => (adv (); A.Id (pos, s))
+         | L.LParen _ => (adv (); let val ast = expr ()
+                                  in case peek () of
+                                         L.RParen _ => (adv (); ast)
+                                       | t => expected ")" t
+                                  end)
+         | t => expected "let, id or constant" t)
+#+END_SRC
+
+The code to parse `let` expressions is still just as hairy as before (and definitely could or should be improved!) but the important part here is the distinction between `appexp`, `atexp`, `infexp`, and `expr`, which represent the same classes of phrases described in The Definition. The result is that this code not only correctly parses function application with higher precedence than all the infix operators, but also correctly parses curried function application (as left-associative).
+
+The lessons I learned here were simple: (a) do some research and (b) sometimes there isn't a fully general, elegant solution (in this case, the production `expr -> expr expr`) and sometimes introducing a level of complexity (the different classes of expression) is necessary. 
+
+The complete parser code is [[https://github.com/spacemanaki/unnamed-ml-compiler-project/blob/5ab87036b06fa2d60a249cc879ad9e29124272ee/src/parser.sml][here]]. I hope to follow this post up with another one detailing changes I made to the infix expression parser, and how the technique I ended up using turned out to be a perfect fit for ML in another part of syntax that is hairy to parse with recursive descent.
