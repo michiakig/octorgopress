@@ -1,4 +1,3 @@
-
 ;; Octopress backend for Org-mode
 ;; Depends on latest (bleeding development branch, maybe v8.x) of Org
 ;; uses generic export: http://orgmode.org/worg/dev/org-export-reference.html
@@ -60,10 +59,11 @@ categories:
   (let* ((lang (get-lang (org-element-property :language src-block)))
          (value (org-element-property :value src-block))
          (name (org-element-property :name src-block))
-         (lang-and-name (or (and lang name (format " %s %s\n" lang name)) "\n")))
+         (name-or-nil (if name (format " %s\n" name) "\n")))
     (concat
      "```"
-     lang-and-name
+     lang
+     name-or-nil
      value
      "```\n"
      contents)))
