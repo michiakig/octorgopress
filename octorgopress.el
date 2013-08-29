@@ -12,11 +12,20 @@
 ;; pygments supports the following languages
 (defvar *org-octopress-pygments-langs*
   (mapcar #'octorg:normalize-lang
-          '("SML" "ActionScript" "Ada" "ANTLR" "AppleScript" "Assembly" "Asymptote" "Awk" "Befunge" "Boo" "BrainFuck" "C" "C++" "C#" "Clojure" "CoffeeScript" "ColdFusion" "Common Lisp" "Coq" "Cython" "D" "Dart" "Delphi" "Dylan" "Erlang" "Factor" "Fancy" "Fortran" "F#" "Gherkin" "GL shaders" "Groovy" "Haskell" "IDL" "Io" "Java" "JavaScript" "LLVM" "Logtalk" "Lua" "Matlab" "MiniD" "Modelica" "Modula-2" "MuPad" "Nemerle" "Nimrod" "Objective-C" "Objective-J" "Octave" "OCaml" "PHP" "Perl" "PovRay" "PostScript" "PowerShell" "Prolog" "Python" "Rebol" "Redcode" "Ruby" "Rust" "S" "S-Plus" "R" "Scala" "Scheme" "Scilab" "Smalltalk" "SNOBOL" "Tcl" "Vala" "Verilog" "VHDL" "Visual Basic.NET" "Visual FoxPro" "XQuery")))
+          '("SML" "ActionScript" "Ada" "ANTLR" "AppleScript" "Assembly"
+            "Asymptote" "Awk" "Befunge" "Boo" "BrainFuck" "C" "C++" "C#"
+            "Clojure" "CoffeeScript" "ColdFusion" "Common Lisp" "Coq" "Cython"
+            "D" "Dart" "Delphi" "Dylan" "Erlang" "Factor" "Fancy" "Fortran"
+            "F#" "Gherkin" "GL shaders" "Groovy" "Haskell" "IDL" "Io" "Java"
+            "JavaScript" "LLVM" "Logtalk" "Lua" "Matlab" "MiniD" "Modelica"
+            "Modula-2" "MuPad" "Nemerle" "Nimrod" "Objective-C" "Objective-J"
+            "Octave" "OCaml" "PHP" "Perl" "PovRay" "PostScript" "PowerShell"
+            "Prolog" "Python" "Rebol" "Redcode" "Ruby" "Rust" "S" "S-Plus" "R"
+            "Scala" "Scheme" "Scilab" "Smalltalk" "SNOBOL" "Tcl" "Vala"
+            "Verilog" "VHDL" "Visual Basic.NET" "Visual FoxPro" "XQuery")))
 
 (org-export-define-backend 'octopress
-  '(
-    (bold . org-octopress-bold)
+  '((bold . org-octopress-bold)
     (fixed-width . org-octopress-fixed-width)
     (headline . org-octopress-headline)
     (italic . org-octopress-italic)
@@ -24,8 +33,7 @@
     (paragraph . org-octopress-paragraph)
     (section . org-octopress-section)
     (src-block . org-octopress-src-block)
-    (template . org-octopress-template)
-))
+    (template . org-octopress-template)))
 
 (defun org-octopress-template (contents info)
   "Accepts the final transcoded string and a plist of export options,
@@ -178,3 +186,5 @@ Octopress/Jekyll style"
        :publishing-directory ,octopress-posts
        :publishing-function org-octopress-publish-to-octopress)
       (,name :components ("posts")))))
+
+(provide 'octorgopress)

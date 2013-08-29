@@ -1,4 +1,4 @@
-
+(require 'octorgopress)
 ;; Some helpers:
 
 (defun to-octopress (s)
