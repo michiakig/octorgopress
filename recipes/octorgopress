@@ -1,0 +1,11 @@
+;;;; -*- mode: emacs-lisp; -*-
+(octorgopress
+ :version "20130827"
+ :documentation "An attempt at literate blogging"
+ :files
+ ("octorgopress.el")
+ :test
+ (:requires
+  ((org "20130826"))
+  :files
+  ("octorgopress-test.el")))
