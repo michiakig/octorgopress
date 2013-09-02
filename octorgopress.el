@@ -59,18 +59,18 @@ categories:
   (let* ((lang (get-lang (org-element-property :language src-block)))
          (value (org-element-property :value src-block))
          (name (org-element-property :name src-block))
-         (lang-and-name
+         (header
           ;; backtick code blocks support lang or lang and name, but not name alone
           (cond ((and lang name)
-                 (concat " " lang " " name "\n"))
+                 (concat "``` " lang " " name "\n"))
                 (lang
-                 (concat " " lang "\n"))
-                (t "\n"))))
+                 (concat "``` " lang "\n"))
+                (t "{% codeblock %}\n")))
+         (footer (if lang "```\n" "{% endcodeblock %}\n")))
     (concat
-     "```"
-     lang-and-name
+     header
      value
-     "```\n"
+     footer
      contents)))
 
 (defun repeat (x n)
