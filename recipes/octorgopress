@@ -6,6 +6,6 @@
  ("octorgopress.el")
  :test
  (:requires
-  ((org "20130826"))
+  ((org "8.0.7"))
   :files
   ("octorgopress-test.el")))

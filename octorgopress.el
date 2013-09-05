@@ -4,7 +4,7 @@
 ;;; URL: https://github.com/spacemanaki/octorgopress
 ;;; Version: 20130828
 ;;; Keywords: org-mode, octopress, blog, literate-programming
-;;; Package-Requires: ((org-mode "20130827"))
+;;; Package-Requires: ((org "8.0.7"))
 
 ;;; Comentary:
 
