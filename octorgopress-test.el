@@ -4,6 +4,8 @@
 (defun to-octopress (s)
   "Given a string, in Org syntax, convert to Octopress Markdown and
 return"
+  (unless (member 'octopress org-export-backends)
+    (error "octopress backend not found"))
   (with-temp-buffer
     (insert s)
     (org-export-as 'octopress)))
