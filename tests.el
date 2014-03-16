@@ -1,9 +1,14 @@
 
 ;; Some helpers:
 
+(defun file-to-string (path)
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+
 (defun to-octopress (s)
-  "Given a string, in Org syntax, convert to Octopress Markdown and
-return"
+  "Given a string, in Org syntax, convert to Octopress Markdown
+and return."
   (with-temp-buffer
     (insert s)
     (org-export-as 'octopress)))
@@ -55,28 +60,16 @@ return string"
 (ert-deftest octopress-anon-src-block ()
   "Test exporting source blocks without name or language specified"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-"#+begin_src
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-#+end_src
-")
-
-"```
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-```"
-))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/anon-src-block.org"))
+             (file-to-string "fixtures/anon-src-block.md")))))
 
 (ert-deftest octopress-src-block ()
   "Test exporting code blocks with name and language"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
 
-"#+name: Hello World in C
+                                "#+name: Hello World in C
 #+begin_src C
 int main() {
    printf(\"Hello, World.\\n\");
@@ -84,7 +77,7 @@ int main() {
 #+end_src
 ")
 
-"``` c Hello World in C
+                               "``` c Hello World in C
 int main() {
    printf(\"Hello, World.\\n\");
 }
@@ -95,7 +88,7 @@ int main() {
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
 
-"#+begin_src :exports code
+                                "#+begin_src :exports code
 val getc: string -> (char, int) StringCvt.reader =
    fn s => fn i =>
       if (i < String.size s)
@@ -103,7 +96,7 @@ val getc: string -> (char, int) StringCvt.reader =
       else NONE
 #+end_src")
 
-"```
+                               "```
 val getc: string -> (char, int) StringCvt.reader =
    fn s => fn i =>
       if (i < String.size s)
@@ -116,7 +109,7 @@ val getc: string -> (char, int) StringCvt.reader =
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
 
-"#+begin_src sml :exports none
+                                "#+begin_src sml :exports none
 val getc: string -> (char, int) StringCvt.reader =
    fn s => fn i =>
       if (i < String.size s)
@@ -124,7 +117,7 @@ val getc: string -> (char, int) StringCvt.reader =
       else NONE
 #+end_src")
 
-""))))
+                               ""))))
 
 (ert-deftest octopress-src-block-not-exported2 ()
   "Test exporting a code block with header arg= :exports none, with
@@ -132,7 +125,7 @@ some surrounding stuff"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
 
-"* Some SML code:
+                                "* Some SML code:
 #+begin_src sml :exports none
 val getc: string -> (char, int) StringCvt.reader =
    fn s => fn i =>
@@ -143,7 +136,7 @@ val getc: string -> (char, int) StringCvt.reader =
 
 Isn't ML nice?")
 
-"# Some SML code:
+                               "# Some SML code:
 
 Isn't ML nice?"))))
 
@@ -151,10 +144,10 @@ Isn't ML nice?"))))
   "Test exporting fixed width area"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
-": bar
+                                ": bar
 : foo")
 
-"```
+                               "```
 bar
 foo
 ```
@@ -164,12 +157,12 @@ foo
   "Test exporting fixed width area from results"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
-"#+RESULTS:
+                                "#+RESULTS:
 :
 : bar
 : foo")
 
-"```
+                               "```
 
 bar
 foo
@@ -179,22 +172,22 @@ foo
 (ert-deftest octopress-fixed-width-trim ()
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (string= (to-octopress
-":
+                      ":
 : foo
 : bar")
 
-"```
+                     "```
 foo
 bar
 ```
 "))
     (should (string= (to-octopress
-":
+                      ":
 :
 : foo
 : bar")
 
-"```
+                     "```
 foo
 bar
 ```

@@ -38,17 +38,16 @@
     (paragraph . org-octopress-paragraph)
     (section . org-octopress-section)
     (src-block . org-octopress-src-block)
-    (template . org-octopress-template)
-))
+    (template . org-octopress-template)))
 
 (defun org-octopress-template (contents info)
   "Accepts the final transcoded string and a plist of export options,
 returns final string with YAML frontmatter as preamble"
-  (let ((title (car (plist-get info :title)))
+  (let ((title (plist-get info :title))
         (date (car (plist-get info :date)))
         (time "")
         (frontmatter
-"---
+         "---
 layout: post
 title: %s
 date: %s %s
@@ -166,7 +165,7 @@ categories:
               (org-export-add-to-stack (current-buffer) 'octopress)))
         `(org-export-as 'octopress ,subtreep ,visible-only ,body-only ',ext-plist))
     (let ((outbuf (org-export-to-buffer 'octopress "*Org Octopress Export*"
-                                        subtreep visible-only body-only ext-plist)))
+                    subtreep visible-only body-only ext-plist)))
       (with-current-buffer outbuf (LaTeX-mode))
       (when org-export-show-temporary-export-buffer
         (switch-to-buffer-other-window outbuf)))))
