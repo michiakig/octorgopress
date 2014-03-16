@@ -67,78 +67,30 @@ return string"
 (ert-deftest octopress-src-block ()
   "Test exporting code blocks with name and language"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-                                "#+name: Hello World in C
-#+begin_src C
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-#+end_src
-")
-
-                               "``` c Hello World in C
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-```"))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/src-block.org"))
+             (file-to-string "fixtures/src-block.md")))))
 
 (ert-deftest octopress-src-block-exported ()
   "Test exporting a code block with header arg= :exports code"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-                                "#+begin_src :exports code
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src")
-
-                               "```
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-```"))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/src-block-exported.org"))
+             (file-to-string "fixtures/src-block-exported.md")))))
 
 (ert-deftest octopress-src-block-not-exported ()
   "Test exporting a code block with header arg= :exports none"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
+    (should (eq/trail-newlines
+             (to-octopress
+              (file-to-string "fixtures/src-block-not-exported.org"))
+             ""))
+    ;; Now with some stuff around it. ML propaganda.
+    (should (eq/trail-newlines
+             (to-octopress
+              (file-to-string "fixtures/src-block-not-exported-2.org"))
+             (file-to-string "fixtures/src-block-not-exported-2.md")))))
 
-                                "#+begin_src sml :exports none
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src")
-
-                               ""))))
-
-(ert-deftest octopress-src-block-not-exported2 ()
-  "Test exporting a code block with header arg= :exports none, with
-some surrounding stuff"
-  (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-                                "* Some SML code:
-#+begin_src sml :exports none
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src
-
-Isn't ML nice?")
-
-                               "# Some SML code:
-
-Isn't ML nice?"))))
 
 (ert-deftest octopress-fixed-width ()
   "Test exporting fixed width area"
