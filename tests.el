@@ -21,10 +21,19 @@ return string"
      (org-export-as 'octopress)))
 
 (defun eq/trail-newlines (x y)
-  "Returns t if two strings are equal modulo trailing newlines"
+  "Returns t if two strings are equal modulo trailing newlines."
   (let ((xx (replace-regexp-in-string "\n+$" "" x))
         (yy (replace-regexp-in-string "\n+$" "" y)))
     (string= xx yy)))
+
+(defun string=/line-diff (x y)
+  "Compute the diff between strings on a line by line basis."
+  (let ((xs (split-string x "\n" t))
+        (ys (split-string y "\n" t)))
+    (cl-loop
+     for str in xs
+     unless (cl-member str ys :test 'string=)
+     collect str)))
 
 ;; Test cases themselves:
 
