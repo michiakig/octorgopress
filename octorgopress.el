@@ -1,6 +1,20 @@
-;; Octopress backend for Org-mode
-;; Depends on latest (bleeding development branch, maybe v8.x) of Org
-;; uses generic export: http://orgmode.org/worg/dev/org-export-reference.html
+;;; octorgopress.el --- Octopress backend for Org-mode.
+
+;;; Author: Michiyaki Yamada <spacemanaki@gmail.com>
+;;; URL: https://github.com/spacemanaki/octorgopress
+;;; Version: 20130828
+;;; Keywords: org-mode, octopress, blog, literate-programming
+;;; Package-Requires: ((org-mode "8.0.7"))
+
+;;; Comentary:
+
+;; Uses generic export. For more information see
+;; http://orgmode.org/worg/dev/org-export-reference.html
+
+;;; License:
+;; MIT License. See License for more info
+
+;;; Code:
 
 (require 'ox)
 
@@ -183,3 +197,5 @@ Octopress/Jekyll style"
        :publishing-directory ,octopress-posts
        :publishing-function org-octopress-publish-to-octopress)
       (,name :components ("posts")))))
+
+;;; octorgopress.el ends here
