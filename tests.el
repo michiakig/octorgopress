@@ -1,9 +1,15 @@
+(require 'cl-lib)
 
 ;; Some helpers:
 
+(defun file-to-string (path)
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+
 (defun to-octopress (s)
-  "Given a string, in Org syntax, convert to Octopress Markdown and
-return"
+  "Given a string, in Org syntax, convert to Octopress Markdown
+and return."
   (with-temp-buffer
     (insert s)
     (org-export-as 'octopress)))
@@ -16,10 +22,19 @@ return string"
      (org-export-as 'octopress)))
 
 (defun eq/trail-newlines (x y)
-  "Returns t if two strings are equal modulo trailing newlines"
+  "Returns t if two strings are equal modulo trailing newlines."
   (let ((xx (replace-regexp-in-string "\n+$" "" x))
         (yy (replace-regexp-in-string "\n+$" "" y)))
     (string= xx yy)))
+
+(defun string=/line-diff (x y)
+  "Compute the diff between strings on a line by line basis."
+  (let ((xs (split-string x "\n" t))
+        (ys (split-string y "\n" t)))
+    (cl-loop
+     for str in xs
+     unless (cl-member str ys :test 'string=)
+     collect str)))
 
 ;; Test cases themselves:
 
@@ -55,106 +70,46 @@ return string"
 (ert-deftest octopress-anon-src-block ()
   "Test exporting source blocks without name or language specified"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-"#+begin_src
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-#+end_src
-")
-
-"```
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-```"
-))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/anon-src-block.org"))
+             (file-to-string "fixtures/anon-src-block.md")))))
 
 (ert-deftest octopress-src-block ()
   "Test exporting code blocks with name and language"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-"#+name: Hello World in C
-#+begin_src C
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-#+end_src
-")
-
-"``` c Hello World in C
-int main() {
-   printf(\"Hello, World.\\n\");
-}
-```"))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/src-block.org"))
+             (file-to-string "fixtures/src-block.md")))))
 
 (ert-deftest octopress-src-block-exported ()
   "Test exporting a code block with header arg= :exports code"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-"#+begin_src :exports code
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src")
-
-"```
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-```"))))
+    (should (eq/trail-newlines
+             (to-octopress (file-to-string "fixtures/src-block-exported.org"))
+             (file-to-string "fixtures/src-block-exported.md")))))
 
 (ert-deftest octopress-src-block-not-exported ()
   "Test exporting a code block with header arg= :exports none"
   (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
+    (should (eq/trail-newlines
+             (to-octopress
+              (file-to-string "fixtures/src-block-not-exported.org"))
+             ""))
+    ;; Now with some stuff around it. ML propaganda.
+    (should (eq/trail-newlines
+             (to-octopress
+              (file-to-string "fixtures/src-block-not-exported-2.org"))
+             (file-to-string "fixtures/src-block-not-exported-2.md")))))
 
-"#+begin_src sml :exports none
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src")
-
-""))))
-
-(ert-deftest octopress-src-block-not-exported2 ()
-  "Test exporting a code block with header arg= :exports none, with
-some surrounding stuff"
-  (let ((*org-octopress-yaml-front-matter* nil))
-    (should (eq/trail-newlines (to-octopress
-
-"* Some SML code:
-#+begin_src sml :exports none
-val getc: string -> (char, int) StringCvt.reader =
-   fn s => fn i =>
-      if (i < String.size s)
-         then SOME(String.sub(s, i), i+1)
-      else NONE
-#+end_src
-
-Isn't ML nice?")
-
-"# Some SML code:
-
-Isn't ML nice?"))))
 
 (ert-deftest octopress-fixed-width ()
   "Test exporting fixed width area"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
-": bar
+                                ": bar
 : foo")
 
-"```
+                               "```
 bar
 foo
 ```
@@ -164,12 +119,12 @@ foo
   "Test exporting fixed width area from results"
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (eq/trail-newlines (to-octopress
-"#+RESULTS:
+                                "#+RESULTS:
 :
 : bar
 : foo")
 
-"```
+                               "```
 
 bar
 foo
@@ -179,22 +134,22 @@ foo
 (ert-deftest octopress-fixed-width-trim ()
   (let ((*org-octopress-yaml-front-matter* nil))
     (should (string= (to-octopress
-":
+                      ":
 : foo
 : bar")
 
-"```
+                     "```
 foo
 bar
 ```
 "))
     (should (string= (to-octopress
-":
+                      ":
 :
 : foo
 : bar")
 
-"```
+                     "```
 foo
 bar
 ```

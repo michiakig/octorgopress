@@ -1,0 +1,6 @@
+#+name: Hello World in C
+#+begin_src C
+int main() {
+   printf("Hello, World.\n");
+}
+#+end_src

@@ -1,6 +1,20 @@
-;; Octopress backend for Org-mode
-;; Depends on latest (bleeding development branch, maybe v8.x) of Org
-;; uses generic export: http://orgmode.org/worg/dev/org-export-reference.html
+;;; octorgopress.el --- Octopress backend for Org-mode.
+
+;;; Author: Michiyaki Yamada <spacemanaki@gmail.com>
+;;; URL: https://github.com/spacemanaki/octorgopress
+;;; Version: 20130828
+;;; Keywords: org-mode, octopress, blog, literate-programming
+;;; Package-Requires: ((org-mode "8.0.7"))
+
+;;; Comentary:
+
+;; Uses generic export. For more information see
+;; http://orgmode.org/worg/dev/org-export-reference.html
+
+;;; License:
+;; MIT License. See License for more info
+
+;;; Code:
 
 (require 'ox)
 
@@ -24,17 +38,16 @@
     (paragraph . org-octopress-paragraph)
     (section . org-octopress-section)
     (src-block . org-octopress-src-block)
-    (template . org-octopress-template)
-))
+    (template . org-octopress-template)))
 
 (defun org-octopress-template (contents info)
   "Accepts the final transcoded string and a plist of export options,
 returns final string with YAML frontmatter as preamble"
-  (let ((title (car (plist-get info :title)))
+  (let ((title (plist-get info :title))
         (date (car (plist-get info :date)))
         (time "")
         (frontmatter
-"---
+         "---
 layout: post
 title: %s
 date: %s %s
@@ -152,7 +165,7 @@ categories:
               (org-export-add-to-stack (current-buffer) 'octopress)))
         `(org-export-as 'octopress ,subtreep ,visible-only ,body-only ',ext-plist))
     (let ((outbuf (org-export-to-buffer 'octopress "*Org Octopress Export*"
-                                        subtreep visible-only body-only ext-plist)))
+                    subtreep visible-only body-only ext-plist)))
       (with-current-buffer outbuf (LaTeX-mode))
       (when org-export-show-temporary-export-buffer
         (switch-to-buffer-other-window outbuf)))))
@@ -183,3 +196,5 @@ Octopress/Jekyll style"
        :publishing-directory ,octopress-posts
        :publishing-function org-octopress-publish-to-octopress)
       (,name :components ("posts")))))
+
+;;; octorgopress.el ends here
